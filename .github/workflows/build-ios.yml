@@ -1,51 +1,70 @@
+
 name: Build iOS App
+
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+
 permissions:
   contents: read
+
 jobs:
   build:
     name: Build iOS App and IPA
     runs-on: macos-15
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
       - name: Generate Xcode project
         run: |
           set -euo pipefail
           xcodegen generate
-          echo "Generated Xcode projects:"
-          find . -maxdepth 3 -name "*.xcodeproj" -print
+          find "$GITHUB_WORKSPACE" -maxdepth 4 -name '*.xcodeproj' -print
+
       - name: Build iOS app
         shell: bash
         run: |
           set -euo pipefail
-          PROJECT_PATH=$(find "$GITHUB_WORKSPACE" \
-            -maxdepth 4 -name "*.xcodeproj" -print -quit)
+
+          PROJECT_PATH="$(find "$GITHUB_WORKSPACE" -maxdepth 4 -name '*.xcodeproj' -print -quit)"
+
           if [ -z "$PROJECT_PATH" ]; then
-            echo "::error::No Xcode project found after XcodeGen."
+            echo '::error::No Xcode project found after XcodeGen.'
             exit 1
           fi
-          echo "Using project: $PROJECT_PATH"
-          SCHEMES=$(xcodebuild -list -json -project "$PROJECT_PATH")
-          SCHEME=$(echo "$SCHEMES" | python3 -c '
-          import json, sys
-          data = json.load(sys.stdin)
+
+          xcodebuild -list -json -project "$PROJECT_PATH" > "$RUNNER_TEMP/xcode-list.json"
+
+          SCHEME="$(python3 - "$RUNNER_TEMP/xcode-list.json" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as file:
+              data = json.load(file)
+
           schemes = data.get("project", {}).get("schemes", [])
-          preferred = ["ROBOSHOP", "ROBO SHOP"]
-          selected = next((s for s in preferred if s in schemes), None)
-          if selected is None and schemes:
-              selected = schemes[0]
-          if selected is None:
-              sys.exit("No Xcode scheme found")
-          print(selected)
-          ')
-          echo "Using scheme: $SCHEME"
+
+          for preferred in ("ROBOSHOP", "ROBO SHOP"):
+              if preferred in schemes:
+                  print(preferred)
+                  raise SystemExit(0)
+
+          if schemes:
+              print(schemes[0])
+          else:
+              raise SystemExit("No Xcode scheme found")
+          PY
+          )"
+
+          echo "Building scheme: $SCHEME"
+
           xcodebuild \
             -project "$PROJECT_PATH" \
             -scheme "$SCHEME" \
@@ -56,26 +75,30 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build
-      - name: Build IPA
+
+      - name: Package IPA
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH=$(find "$GITHUB_WORKSPACE/build/DerivedData" \
-            -type d -name "*.app" \
-            -path "*/Release-iphoneos/*" -print -quit)
+
+          APP_PATH="$(find "$GITHUB_WORKSPACE/build/DerivedData" -type d -name '*.app' -path '*/Release-iphoneos/*' -print -quit)"
+
           if [ -z "$APP_PATH" ]; then
-            echo "::error::Built iOS app was not found."
+            echo '::error::Built iOS app was not found.'
+            find "$GITHUB_WORKSPACE/build/DerivedData" -maxdepth 7 -print || true
             exit 1
           fi
+
           IPA_DIR="$GITHUB_WORKSPACE/build/ipa"
           mkdir -p "$IPA_DIR/Payload"
-          APP_NAME=$(basename "$APP_PATH")
-          ditto "$APP_PATH" "$IPA_DIR/Payload/$APP_NAME"
+
+          ditto "$APP_PATH" "$IPA_DIR/Payload/$(basename "$APP_PATH")"
+
           cd "$IPA_DIR"
           /usr/bin/zip -qry ROBOSHOP.ipa Payload
-          echo "IPA created:"
           ls -lh ROBOSHOP.ipa
-      - name: Upload IPA
+
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ROBOSHOP-iOS-IPA
