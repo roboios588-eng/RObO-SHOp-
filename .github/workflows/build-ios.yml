@@ -1,0 +1,97 @@
+
+name: Build ROBO SHOP V3 IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macos-15
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Check source files
+        run: |
+          set -euo pipefail
+          test -f project.yml
+          test -f "ROBO SHOP/ROBOShopApp.swift"
+          test -f "ROBO SHOP/Theme.swift"
+          test -f "ROBO SHOP/APIClient.swift"
+          test -f "ROBO SHOP/KeychainTokenStore.swift"
+          test -f "ROBO SHOP/RootView.swift"
+          test -f "ROBO SHOP/Info.plist"
+          plutil -lint "ROBO SHOP/Info.plist"
+
+      - name: Generate Xcode project
+        run: |
+          set -euo pipefail
+          xcodegen generate
+          xcodebuild -list -project ROBOSHOP.xcodeproj
+
+      - name: Build unsigned iPhone app
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project ROBOSHOP.xcodeproj \
+            -scheme ROBOSHOP \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            build 2>&1 | tee xcodebuild.log
+
+      - name: Verify app
+        run: |
+          set -euo pipefail
+          APP_PATH="build/Build/Products/Release-iphoneos/ROBOSHOP.app"
+          test -d "$APP_PATH"
+          plutil -lint "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy \
+            -c 'Print :CFBundleDisplayName' "$APP_PATH/Info.plist"
+          /usr/libexec/PlistBuddy \
+            -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist"
+          EXECUTABLE=$(/usr/libexec/PlistBuddy \
+            -c 'Print :CFBundleExecutable' "$APP_PATH/Info.plist")
+          test -f "$APP_PATH/$EXECUTABLE"
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="build/Build/Products/Release-iphoneos/ROBOSHOP.app"
+          rm -rf ipa
+          mkdir -p ipa/Payload
+          cp -R "$APP_PATH" "ipa/Payload/ROBO SHOP.app"
+          (cd ipa && zip -qry ../ROBO-SHOP-V3-unsigned.ipa Payload)
+          unzip -t ROBO-SHOP-V3-unsigned.ipa
+          test -s ROBO-SHOP-V3-unsigned.ipa
+
+      - name: Upload IPA and build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ROBO-SHOP-V3-iOS
+          path: |
+            ROBO-SHOP-V3-unsigned.ipa
+            xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 14
