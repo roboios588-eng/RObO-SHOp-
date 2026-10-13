@@ -1,0 +1,35 @@
+
+name: ROBOSHOP
+
+options:
+  bundleIdPrefix: com.roboshop
+  deploymentTarget:
+    iOS: "16.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    SUPPORTS_MACCATALYST: "NO"
+    GENERATE_INFOPLIST_FILE: "NO"
+
+targets:
+  ROBOSHOP:
+    type: application
+    platform: iOS
+    sources:
+      - path: ROBO SHOP
+        excludes:
+          - Info.plist
+    info:
+      path: ROBO SHOP/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.roboshop.ios
+        PRODUCT_NAME: "ROBO SHOP"
+        INFOPLIST_KEY_CFBundleDisplayName: "ROBO SHOP"
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        CODE_SIGN_STYLE: Automatic
