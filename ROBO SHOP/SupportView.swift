@@ -1,42 +1,21 @@
 
 import SwiftUI
 
-// Add the official admin contact details here.
-// Leave a value empty until you have the correct contact information.
 enum RoboSupportConfiguration {
-    static let adminEmail = ""
-    // International digits only, e.g. 923001234567
-    static let adminWhatsAppNumber = ""
+    static let telegramUsername = "robomods"
+    static let telegramURL = URL(string: "https://t.me/robomods")!
+
+    // International format, digits only. Do not include + or spaces.
+    static let adminWhatsAppNumber = "923062768314"
+    static let whatsappURL = URL(string: "https://wa.me/923062768314")!
 }
 
 struct SupportView: View {
-    private var emailURL: URL? {
-        let value = RoboSupportConfiguration.adminEmail
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !value.isEmpty,
-              value.contains("@"),
-              let encoded = value.addingPercentEncoding(
-                withAllowedCharacters: .urlQueryAllowed
-              ) else {
-            return nil
-        }
-
-        return URL(string: "mailto:\(encoded)")
-    }
-
-    private var whatsappURL: URL? {
-        let digits = RoboSupportConfiguration.adminWhatsAppNumber
-            .filter(\.isNumber)
-
-        guard !digits.isEmpty else { return nil }
-        return URL(string: "https://wa.me/\(digits)")
-    }
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 8) {
+                // Header
+                VStack(alignment: .leading, spacing: 10) {
                     Image(systemName: "headset")
                         .font(.system(size: 34, weight: .semibold))
                         .foregroundStyle(.white)
@@ -45,126 +24,109 @@ struct SupportView: View {
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
 
-                    Text("Help with your account, orders and payments.")
+                    Text("Need help with your account, orders or payments? Contact our admin.")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.82))
+                        .foregroundStyle(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(22)
                 .background(RoboTheme.navy)
                 .clipShape(RoundedRectangle(cornerRadius: 22))
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Contact the admin")
+                // Admin contact buttons
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("Contact the Admin")
                         .font(.title3.bold())
                         .foregroundStyle(RoboTheme.text)
 
-                    supportLink(
-                        title: "Email Support",
-                        subtitle: emailURL == nil
-                            ? "Admin email has not been configured"
-                            : RoboSupportConfiguration.adminEmail,
-                        symbol: "envelope.fill",
-                        url: emailURL
-                    )
+                    Link(destination: RoboSupportConfiguration.telegramURL) {
+                        contactRow(
+                            title: "Telegram Support",
+                            subtitle: "@\(RoboSupportConfiguration.telegramUsername)",
+                            symbol: "paperplane.fill"
+                        )
+                    }
 
                     Divider()
 
-                    supportLink(
-                        title: "WhatsApp Support",
-                        subtitle: whatsappURL == nil
-                            ? "Admin WhatsApp number has not been configured"
-                            : "Open a chat with the admin",
-                        symbol: "message.fill",
-                        url: whatsappURL
-                    )
+                    Link(destination: RoboSupportConfiguration.whatsappURL) {
+                        contactRow(
+                            title: "WhatsApp Support",
+                            subtitle: "+\(RoboSupportConfiguration.adminWhatsAppNumber)",
+                            symbol: "message.fill"
+                        )
+                    }
+
+                    Text("Tap a contact option to open the relevant app or website.")
+                        .font(.caption)
+                        .foregroundStyle(RoboTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
 
+                // Common help
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Common help")
+                    Text("Common Help")
                         .font(.title3.bold())
                         .foregroundStyle(RoboTheme.text)
 
                     helpRow(
                         "Orders",
-                        "Open the Orders tab to review your order and payment status.",
+                        "Open the Orders tab to review your orders and their current status.",
                         symbol: "shippingbox"
                     )
 
                     Divider()
 
                     helpRow(
-                        "Payment proof",
-                        "Open an order and submit the transaction reference and payment screenshot if requested.",
+                        "Payment Proof",
+                        "Open your order and submit the transaction reference and payment screenshot when requested.",
                         symbol: "doc.text.image"
                     )
 
                     Divider()
 
                     helpRow(
-                        "Login or password",
-                        "Use your registered username or email and password. Password reset requires a working backend reset endpoint.",
+                        "Login or Password",
+                        "If you cannot access your account, contact the admin through Telegram or WhatsApp.",
                         symbol: "lock.shield"
                     )
                 }
                 .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.white)
                 .clipShape(RoundedRectangle(cornerRadius: 18))
 
-                Text("Configure the official admin email or WhatsApp number in SupportView.swift to activate the contact links.")
+                Text("ROBO SHOP · Admin Support")
                     .font(.caption)
                     .foregroundStyle(RoboTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 4)
             }
             .padding(16)
             .frame(maxWidth: 600)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .top)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(RoboTheme.background.ignoresSafeArea())
         .navigationTitle("Support")
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    @ViewBuilder
-    private func supportLink(
+    private func contactRow(
         title: String,
         subtitle: String,
-        symbol: String,
-        url: URL?
-    ) -> some View {
-        if let url {
-            Link(destination: url) {
-                supportLinkLabel(
-                    title: title,
-                    subtitle: subtitle,
-                    symbol: symbol,
-                    enabled: true
-                )
-            }
-        } else {
-            supportLinkLabel(
-                title: title,
-                subtitle: subtitle,
-                symbol: symbol,
-                enabled: false
-            )
-        }
-    }
-
-    private func supportLinkLabel(
-        title: String,
-        subtitle: String,
-        symbol: String,
-        enabled: Bool
+        symbol: String
     ) -> some View {
         HStack(spacing: 12) {
             Image(systemName: symbol)
                 .font(.headline)
                 .foregroundStyle(RoboTheme.blue)
-                .frame(width: 42, height: 42)
+                .frame(width: 44, height: 44)
                 .background(RoboTheme.paleBlue)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
@@ -174,17 +136,16 @@ struct SupportView: View {
                     .foregroundStyle(RoboTheme.text)
 
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(RoboTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 8)
 
-            Image(systemName: enabled ? "arrow.up.right" : "minus.circle")
-                .foregroundStyle(RoboTheme.secondaryText)
+            Image(systemName: "arrow.up.right")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(RoboTheme.blue)
         }
-        .padding(.vertical, 5)
         .contentShape(Rectangle())
     }
 
@@ -209,5 +170,6 @@ struct SupportView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
