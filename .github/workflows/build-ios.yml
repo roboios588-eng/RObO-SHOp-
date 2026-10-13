@@ -14,21 +14,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install XcodeGen
-        run: |
-          brew install xcodegen
+        run: brew install xcodegen
       - name: Generate Xcode project
         run: |
           set -euo pipefail
           xcodegen generate
-      - name: Build unsigned iPhone app
+          echo "Generated Xcode projects:"
+          find . -maxdepth 3 -name "*.xcodeproj" -print
+      - name: Build iOS app
+        shell: bash
         run: |
           set -euo pipefail
+          PROJECT_PATH=$(find "$GITHUB_WORKSPACE" \
+            -maxdepth 4 -name "*.xcodeproj" -print -quit)
+          if [ -z "$PROJECT_PATH" ]; then
+            echo "::error::No Xcode project found after XcodeGen."
+            exit 1
+          fi
+          echo "Using project: $PROJECT_PATH"
+          SCHEMES=$(xcodebuild -list -json -project "$PROJECT_PATH")
+          SCHEME=$(echo "$SCHEMES" | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          schemes = data.get("project", {}).get("schemes", [])
+          preferred = ["ROBOSHOP", "ROBO SHOP"]
+          selected = next((s for s in preferred if s in schemes), None)
+          if selected is None and schemes:
+              selected = schemes[0]
+          if selected is None:
+              sys.exit("No Xcode scheme found")
+          print(selected)
+          ')
+          echo "Using scheme: $SCHEME"
           xcodebuild \
-            -project "ROBO SHOP.xcodeproj" \
-            -scheme "ROBOSHOP" \
+            -project "$PROJECT_PATH" \
+            -scheme "$SCHEME" \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build/Build \
+            -derivedDataPath "$GITHUB_WORKSPACE/build/DerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -37,21 +60,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH="build/Build/Build/Products/Release-iphoneos/ROBOSHOP.app"
-          IPA_DIR="$GITHUB_WORKSPACE/build/ipa"
-          if [ ! -d "$APP_PATH" ]; then
-            APP_PATH=$(find "$GITHUB_WORKSPACE/build/Build" \
-              -type d -name "ROBOSHOP.app" -print -quit)
-          fi
-          if [ -z "${APP_PATH:-}" ] || [ ! -d "$APP_PATH" ]; then
-            echo "App build output was not found."
+          APP_PATH=$(find "$GITHUB_WORKSPACE/build/DerivedData" \
+            -type d -name "*.app" \
+            -path "*/Release-iphoneos/*" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Built iOS app was not found."
             exit 1
           fi
+          IPA_DIR="$GITHUB_WORKSPACE/build/ipa"
           mkdir -p "$IPA_DIR/Payload"
-          ditto "$APP_PATH" "$IPA_DIR/Payload/ROBOSHOP.app"
+          APP_NAME=$(basename "$APP_PATH")
+          ditto "$APP_PATH" "$IPA_DIR/Payload/$APP_NAME"
           cd "$IPA_DIR"
           /usr/bin/zip -qry ROBOSHOP.ipa Payload
-          echo "IPA created successfully:"
+          echo "IPA created:"
           ls -lh ROBOSHOP.ipa
       - name: Upload IPA
         uses: actions/upload-artifact@v4
