@@ -1,3 +1,4 @@
+
 import SwiftUI
 import PhotosUI
 
@@ -125,6 +126,7 @@ struct RootView: View {
         }
         .padding(22)
         .frame(maxWidth: 500)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.white)
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .shadow(color: RoboTheme.navy.opacity(0.06), radius: 18, y: 6)
@@ -234,8 +236,17 @@ struct RootView: View {
                 Label("Account", systemImage: "person.crop.circle.fill")
             }
             .tag(2)
+
+            NavigationStack {
+                SupportView()
+            }
+            .tabItem {
+                Label("Support", systemImage: "headset")
+            }
+            .tag(3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoboTheme.background.ignoresSafeArea())
         .toolbarBackground(.white, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .task {
