@@ -15,11 +15,13 @@ struct APIProduct: Decodable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+
         if let stringID = try? values.decode(String.self, forKey: .id) {
             id = stringID
         } else {
             id = String(try values.decode(Int.self, forKey: .id))
         }
+
         name = try values.decode(String.self, forKey: .name)
         description = try values.decodeIfPresent(String.self, forKey: .description)
         category = try values.decodeIfPresent(String.self, forKey: .category)
@@ -134,8 +136,7 @@ final class APIClient {
     }
 
     private func makeURL(_ path: String) throws -> URL {
-        let fullPath = baseURL + "/" + path
-        guard let url = URL(string: fullPath) else {
+        guard let url = URL(string: baseURL + "/" + path) else {
             throw APIError.invalidURL
         }
         return url
@@ -149,6 +150,7 @@ final class APIClient {
     ) async throws -> Data {
         let url = try makeURL(path)
         var request = URLRequest(url: url)
+
         request.httpMethod = method
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -159,7 +161,11 @@ final class APIClient {
                   !token.isEmpty else {
                 throw APIError.missingToken
             }
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+            request.setValue(
+                "Bearer \(token)",
+                forHTTPHeaderField: "Authorization"
+            )
         }
 
         let (data, response) = try await session.data(for: request)
@@ -169,15 +175,42 @@ final class APIClient {
         }
 
         guard (200..<300).contains(http.statusCode) else {
+            let message = Self.readableServerMessage(from: data)
             let bodyText = String(data: data, encoding: .utf8) ?? ""
-            throw APIError.server(
-                bodyText.isEmpty
-                ? "Server error (\(http.statusCode))."
-                : "Server error (\(http.statusCode)): \(bodyText)"
-            )
+
+            let errorMessage: String
+
+            if !message.isEmpty {
+                errorMessage = "\(message) (HTTP \(http.statusCode))"
+            } else if !bodyText.isEmpty {
+                errorMessage = "Server error (\(http.statusCode)): \(bodyText)"
+            } else {
+                errorMessage = "Server error (\(http.statusCode))."
+            }
+
+            throw APIError.server(errorMessage)
         }
 
         return data
+    }
+
+    private static func readableServerMessage(from data: Data) -> String {
+        guard let object = try? JSONSerialization.jsonObject(with: data)
+                as? [String: Any] else {
+            return ""
+        }
+
+        for key in ["message", "error", "detail", "details"] {
+            if let value = object[key] as? String, !value.isEmpty {
+                return value
+            }
+
+            if let values = object[key] as? [String], !values.isEmpty {
+                return values.joined(separator: ", ")
+            }
+        }
+
+        return ""
     }
 
     func login(identifier: String, password: String) async throws {
@@ -189,6 +222,7 @@ final class APIClient {
         ]
 
         let body = try JSONEncoder().encode(payload)
+
         let data = try await request(
             "auth/login",
             method: "POST",
@@ -197,19 +231,26 @@ final class APIClient {
         )
 
         let decoded = try JSONDecoder().decode(TokenResponse.self, from: data)
+
         let token = decoded.access_token
             ?? decoded.token
             ?? decoded.data?.access_token
             ?? decoded.data?.token
 
         guard let token, !token.isEmpty else {
-            throw APIError.server("Login response did not contain an access token.")
+            throw APIError.server(
+                "Login response did not contain an access token."
+            )
         }
 
         try KeychainTokenStore.shared.save(token)
     }
 
-    func register(username: String, email: String, password: String) async throws {
+    func register(
+        username: String,
+        email: String,
+        password: String
+    ) async throws {
         let payload: [String: String] = [
             "username": username,
             "email": email,
@@ -217,6 +258,7 @@ final class APIClient {
         ]
 
         let body = try JSONEncoder().encode(payload)
+
         _ = try await request(
             "auth/register",
             method: "POST",
@@ -232,9 +274,17 @@ final class APIClient {
             return array
         }
 
-        if let envelope = try? JSONDecoder().decode(ProductEnvelope.self, from: data) {
-            if let products = envelope.products { return products }
-            if let data = envelope.data { return data }
+        if let envelope = try? JSONDecoder().decode(
+            ProductEnvelope.self,
+            from: data
+        ) {
+            if let products = envelope.products {
+                return products
+            }
+
+            if let products = envelope.data {
+                return products
+            }
         }
 
         throw APIError.server("Products response format is not supported.")
@@ -247,9 +297,17 @@ final class APIClient {
             return array
         }
 
-        if let envelope = try? JSONDecoder().decode(OrderEnvelope.self, from: data) {
-            if let orders = envelope.orders { return orders }
-            if let data = envelope.data { return data }
+        if let envelope = try? JSONDecoder().decode(
+            OrderEnvelope.self,
+            from: data
+        ) {
+            if let orders = envelope.orders {
+                return orders
+            }
+
+            if let orders = envelope.data {
+                return orders
+            }
         }
 
         throw APIError.server("Orders response format is not supported.")
@@ -259,7 +317,12 @@ final class APIClient {
         let body = try JSONSerialization.data(
             withJSONObject: ["product_id": productID]
         )
-        _ = try await request("orders", method: "POST", body: body)
+
+        _ = try await request(
+            "orders",
+            method: "POST",
+            body: body
+        )
     }
 
     func uploadPaymentProof(
@@ -274,18 +337,25 @@ final class APIClient {
 
         let boundary = "Boundary-\(UUID().uuidString)"
         let url = try makeURL("orders/\(orderID)/payment")
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 60
+
         request.setValue(
             "multipart/form-data; boundary=\(boundary)",
             forHTTPHeaderField: "Content-Type"
         )
 
-        guard let token = KeychainTokenStore.shared.read(), !token.isEmpty else {
+        guard let token = KeychainTokenStore.shared.read(),
+              !token.isEmpty else {
             throw APIError.missingToken
         }
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        request.setValue(
+            "Bearer \(token)",
+            forHTTPHeaderField: "Authorization"
+        )
 
         var body = Data()
 
@@ -300,22 +370,28 @@ final class APIClient {
         append("--\(boundary)\r\n")
         append("Content-Disposition: form-data; name=\"proof\"; filename=\"payment.jpg\"\r\n")
         append("Content-Type: image/jpeg\r\n\r\n")
+
         body.append(imageData)
         append("\r\n--\(boundary)--\r\n")
 
         request.httpBody = body
 
         let (data, response) = try await session.data(for: request)
+
         guard let http = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
         guard (200..<300).contains(http.statusCode) else {
+            let message = Self.readableServerMessage(from: data)
             let bodyText = String(data: data, encoding: .utf8) ?? ""
+
             throw APIError.server(
-                bodyText.isEmpty
-                ? "Payment proof upload failed (\(http.statusCode))."
-                : bodyText
+                !message.isEmpty
+                    ? "\(message) (HTTP \(http.statusCode))"
+                    : (!bodyText.isEmpty
+                        ? bodyText
+                        : "Payment proof upload failed (\(http.statusCode)).")
             )
         }
     }
