@@ -1,4 +1,3 @@
-
 import SwiftUI
 import PhotosUI
 
@@ -46,10 +45,7 @@ struct RootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            RoboTheme.background
-                .ignoresSafeArea()
-        }
+        .background(RoboTheme.background.ignoresSafeArea())
         .preferredColorScheme(.light)
         .alert("ROBO SHOP", isPresented: $showAlert) {
             Button("OK", role: .cancel) {}
@@ -58,159 +54,137 @@ struct RootView: View {
         }
     }
 
-    // MARK: - Login and Registration
+    // MARK: - Login
 
     private var loginView: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     Spacer(minLength: 24)
-
-                    Image(systemName: "shippingbox.fill")
-                        .font(.system(size: 42, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 88, height: 88)
-                        .background(RoboTheme.blue)
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 25)
-                        )
-
-                    VStack(spacing: 6) {
-                        Text("ROBO SHOP")
-                            .font(
-                                .system(
-                                    size: 30,
-                                    weight: .black,
-                                    design: .rounded
-                                )
-                            )
-                            .foregroundStyle(RoboTheme.navy)
-
-                        Text("Your digital store")
-                            .font(.subheadline)
-                            .foregroundStyle(RoboTheme.secondaryText)
-                    }
-
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text(
-                            isRegistering
-                            ? "Create account"
-                            : "Welcome back"
-                        )
-                        .font(.title2.bold())
-                        .foregroundStyle(RoboTheme.text)
-
-                        if isRegistering {
-                            textField(
-                                "Username",
-                                text: $username,
-                                icon: "person"
-                            )
-
-                            textField(
-                                "Email",
-                                text: $email,
-                                icon: "envelope",
-                                isEmail: true
-                            )
-                        } else {
-                            textField(
-                                "Username or email",
-                                text: $identifier,
-                                icon: "person"
-                            )
-                        }
-
-                        HStack(spacing: 12) {
-                            Image(systemName: "lock")
-                                .foregroundStyle(
-                                    RoboTheme.secondaryText
-                                )
-
-                            SecureField(
-                                "Password",
-                                text: $password
-                            )
-                            .textContentType(
-                                isRegistering
-                                ? .newPassword
-                                : .password
-                            )
-                        }
-                        .padding(15)
-                        .background(RoboTheme.background)
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 13)
-                        )
-
-                        Button {
-                            Task {
-                                await authenticate()
-                            }
-                        } label: {
-                            HStack {
-                                if isBusy {
-                                    ProgressView()
-                                        .tint(.white)
-                                }
-
-                                Text(
-                                    isBusy
-                                    ? "Please wait…"
-                                    : (
-                                        isRegistering
-                                        ? "Create Account"
-                                        : "Sign In"
-                                    )
-                                )
-                            }
-                        }
-                        .buttonStyle(RoboPrimaryButtonStyle())
-                        .disabled(isBusy)
-
-                        Button {
-                            isRegistering.toggle()
-                        } label: {
-                            Text(
-                                isRegistering
-                                ? "Already registered? Sign in"
-                                : "New here? Create an account"
-                            )
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                        }
-                        .disabled(isBusy)
-                    }
-                    .padding(22)
-                    .frame(maxWidth: 500)
-                    .background(.white)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 22)
-                    )
-                    .shadow(
-                        color: RoboTheme.navy.opacity(0.06),
-                        radius: 18,
-                        y: 6
-                    )
-                    .padding(.horizontal, 20)
-
-                    Text("Secure access to your store account")
-                        .font(.caption)
-                        .foregroundStyle(RoboTheme.secondaryText)
-
+                    loginBrand
+                    loginForm
+                    loginFooter
                     Spacer(minLength: 24)
                 }
                 .frame(maxWidth: 500)
                 .frame(maxWidth: .infinity)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background {
-                RoboTheme.background
-                    .ignoresSafeArea()
-            }
+            .background(RoboTheme.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var loginBrand: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "shippingbox.fill")
+                .font(.system(size: 42, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 88, height: 88)
+                .background(RoboTheme.blue)
+                .clipShape(RoundedRectangle(cornerRadius: 25))
+
+            VStack(spacing: 6) {
+                Text("ROBO SHOP")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundStyle(RoboTheme.navy)
+
+                Text("Your digital store")
+                    .font(.subheadline)
+                    .foregroundStyle(RoboTheme.secondaryText)
+            }
+        }
+    }
+
+    private var loginForm: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(isRegistering ? "Create account" : "Welcome back")
+                .font(.title2.bold())
+                .foregroundStyle(RoboTheme.text)
+
+            if isRegistering {
+                textField("Username", text: $username, icon: "person")
+                textField(
+                    "Email",
+                    text: $email,
+                    icon: "envelope",
+                    isEmail: true
+                )
+            } else {
+                textField(
+                    "Username or email",
+                    text: $identifier,
+                    icon: "person"
+                )
+            }
+
+            passwordField
+            authenticateButton
+            registrationToggle
+        }
+        .padding(22)
+        .frame(maxWidth: 500)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .shadow(color: RoboTheme.navy.opacity(0.06), radius: 18, y: 6)
+        .padding(.horizontal, 20)
+    }
+
+    private var passwordField: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "lock")
+                .foregroundStyle(RoboTheme.secondaryText)
+
+            SecureField("Password", text: $password)
+                .textContentType(isRegistering ? .newPassword : .password)
+        }
+        .padding(15)
+        .background(RoboTheme.background)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+    }
+
+    private var authenticateButton: some View {
+        Button {
+            Task {
+                await authenticate()
+            }
+        } label: {
+            HStack {
+                if isBusy {
+                    ProgressView().tint(.white)
+                }
+
+                Text(
+                    isBusy
+                    ? "Please wait…"
+                    : (isRegistering ? "Create Account" : "Sign In")
+                )
+            }
+        }
+        .buttonStyle(RoboPrimaryButtonStyle())
+        .disabled(isBusy)
+    }
+
+    private var registrationToggle: some View {
+        Button {
+            isRegistering.toggle()
+        } label: {
+            Text(
+                isRegistering
+                ? "Already registered? Sign in"
+                : "New here? Create an account"
+            )
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+        }
+        .disabled(isBusy)
+    }
+
+    private var loginFooter: some View {
+        Text("Secure access to your store account")
+            .font(.caption)
+            .foregroundStyle(RoboTheme.secondaryText)
     }
 
     private func textField(
@@ -224,9 +198,7 @@ struct RootView: View {
                 .foregroundStyle(RoboTheme.secondaryText)
 
             TextField(title, text: text)
-                .keyboardType(
-                    isEmail ? .emailAddress : .default
-                )
+                .keyboardType(isEmail ? .emailAddress : .default)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
         }
@@ -235,7 +207,7 @@ struct RootView: View {
         .clipShape(RoundedRectangle(cornerRadius: 13))
     }
 
-    // MARK: - Main Tabs
+    // MARK: - Tabs
 
     private var shopTabs: some View {
         TabView(selection: $selectedTab) {
@@ -251,10 +223,7 @@ struct RootView: View {
                 ordersView
             }
             .tabItem {
-                Label(
-                    "Orders",
-                    systemImage: "list.clipboard.fill"
-                )
+                Label("Orders", systemImage: "list.clipboard.fill")
             }
             .tag(1)
 
@@ -262,10 +231,7 @@ struct RootView: View {
                 accountView
             }
             .tabItem {
-                Label(
-                    "Account",
-                    systemImage: "person.crop.circle.fill"
-                )
+                Label("Account", systemImage: "person.crop.circle.fill")
             }
             .tag(2)
         }
@@ -281,161 +247,102 @@ struct RootView: View {
 
     private var productsView: some View {
         VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("ROBO SHOP")
-                        .font(.caption.bold())
-                        .tracking(1.4)
-                        .foregroundStyle(.white.opacity(0.75))
-
-                    Text("Find your next deal")
-                        .font(.title2.bold())
-                        .foregroundStyle(.white)
-                }
-
-                Spacer()
-
-                Image(systemName: "bag.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-            }
-            .padding(20)
-            .background(RoboTheme.navy)
-
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(RoboTheme.secondaryText)
-
-                TextField(
-                    "Search products",
-                    text: $searchText
-                )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            }
-            .padding(13)
-            .background(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 13))
-            .padding(16)
-
-            if filteredProducts.isEmpty {
-                emptyStateView(
-                    title: products.isEmpty
-                        ? "No Products"
-                        : "No Results",
-                    message: products.isEmpty
-                        ? "Pull down to try loading products again."
-                        : "Try a different search.",
-                    systemImage: "shippingbox"
-                )
-
-                Spacer(minLength: 0)
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(filteredProducts) { product in
-                            productCard(product)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
-                }
-                .refreshable {
-                    await loadProducts()
-                }
-            }
+            shopHeader
+            productSearchBar
+            productListContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            RoboTheme.background
-                .ignoresSafeArea()
-        }
+        .background(RoboTheme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(
-            trailing: Button {
-                Task {
-                    await loadProducts()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    Task {
+                        await loadProducts()
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
-            } label: {
-                Image(systemName: "arrow.clockwise")
+                .accessibilityLabel("Refresh products")
             }
-            .disabled(isBusy)
-        )
+        }
     }
 
-    private func productCard(
-        _ product: APIProduct
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "cube.box.fill")
-                    .font(.title2)
-                    .foregroundStyle(RoboTheme.blue)
-                    .frame(width: 50, height: 50)
-                    .background(RoboTheme.paleBlue)
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 14)
-                    )
+    private var shopHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("ROBO SHOP")
+                    .font(.caption.bold())
+                    .tracking(1.4)
+                    .foregroundStyle(.white.opacity(0.75))
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(product.name)
-                        .font(.headline)
-                        .foregroundStyle(RoboTheme.text)
-
-                    if let category = product.category,
-                       !category.isEmpty {
-                        Text(category.uppercased())
-                            .font(.caption2.bold())
-                            .foregroundStyle(RoboTheme.blue)
-                    }
-
-                    if let description = product.description,
-                       !description.isEmpty {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundStyle(
-                                RoboTheme.secondaryText
-                            )
-                            .fixedSize(
-                                horizontal: false,
-                                vertical: true
-                            )
-                    }
-                }
-
-                Spacer(minLength: 0)
+                Text("Find your next deal")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
             }
+
+            Spacer()
+
+            Image(systemName: "bag.fill")
+                .font(.title2)
+                .foregroundStyle(.white)
+        }
+        .padding(20)
+        .background(RoboTheme.navy)
+    }
+
+    private var productSearchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(RoboTheme.secondaryText)
+
+            TextField("Search products", text: $searchText)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+        }
+        .padding(13)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 13))
+        .padding(16)
+    }
+
+    @ViewBuilder
+    private var productListContent: some View {
+        if filteredProducts.isEmpty {
+            emptyStateView(
+                title: products.isEmpty ? "No Products" : "No Results",
+                message: products.isEmpty
+                    ? "Pull down to try loading products again."
+                    : "Try a different search.",
+                systemImage: "shippingbox"
+            )
+        } else {
+            productScrollView
+        }
+    }
+
+    private var productScrollView: some View {
+        ScrollView {
+            LazyVStack(spacing: 12) {
+                ForEach(filteredProducts) { product in
+                    productCard(product)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+        .refreshable {
+            await loadProducts()
+        }
+    }
+
+    private func productCard(_ product: APIProduct) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            productCardDetails(product)
 
             Divider()
 
-            HStack {
-                Text(
-                    product.price,
-                    format: .currency(code: "USD")
-                )
-                .font(.title3.bold())
-                .foregroundStyle(RoboTheme.navy)
-
-                Spacer()
-
-                Button {
-                    Task {
-                        await createOrder(product)
-                    }
-                } label: {
-                    Label(
-                        "Order",
-                        systemImage: "arrow.right"
-                    )
-                    .font(.subheadline.bold())
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .foregroundStyle(.white)
-                    .background(RoboTheme.blue)
-                    .clipShape(Capsule())
-                }
-                .disabled(isBusy)
-            }
+            productCardFooter(product)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -443,17 +350,72 @@ struct RootView: View {
         .clipShape(RoundedRectangle(cornerRadius: 19))
         .overlay {
             RoundedRectangle(cornerRadius: 19)
-                .stroke(
-                    RoboTheme.paleBlue,
-                    lineWidth: 1
-                )
+                .stroke(RoboTheme.paleBlue, lineWidth: 1)
+        }
+    }
+
+    private func productCardDetails(_ product: APIProduct) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "cube.box.fill")
+                .font(.title2)
+                .foregroundStyle(RoboTheme.blue)
+                .frame(width: 50, height: 50)
+                .background(RoboTheme.paleBlue)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(product.name)
+                    .font(.headline)
+                    .foregroundStyle(RoboTheme.text)
+
+                if let category = product.category, !category.isEmpty {
+                    Text(category.uppercased())
+                        .font(.caption2.bold())
+                        .foregroundStyle(RoboTheme.blue)
+                }
+
+                if let description = product.description,
+                   !description.isEmpty {
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundStyle(RoboTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func productCardFooter(_ product: APIProduct) -> some View {
+        HStack {
+            Text(product.price, format: .currency(code: "USD"))
+                .font(.title3.bold())
+                .foregroundStyle(RoboTheme.navy)
+
+            Spacer()
+
+            Button {
+                Task {
+                    await createOrder(product)
+                }
+            } label: {
+                Label("Order", systemImage: "arrow.right")
+                    .font(.subheadline.bold())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .foregroundStyle(.white)
+                    .background(RoboTheme.blue)
+                    .clipShape(Capsule())
+            }
+            .disabled(isBusy)
         }
     }
 
     // MARK: - Orders
 
     private var ordersView: some View {
-        VStack(spacing: 0) {
+        Group {
             if orders.isEmpty {
                 emptyStateView(
                     title: "No Orders Yet",
@@ -461,103 +423,82 @@ struct RootView: View {
                     systemImage: "shippingbox"
                 )
             } else {
-                List {
-                    ForEach(orders) { order in
-                        VStack(
-                            alignment: .leading,
-                            spacing: 10
-                        ) {
-                            Text(
-                                order.productName
-                                ?? "Order \(order.id)"
-                            )
-                            .font(.headline)
-                            .foregroundStyle(RoboTheme.text)
-
-                            Text("Order ID: \(order.id)")
-                                .font(.caption)
-                                .foregroundStyle(
-                                    RoboTheme.secondaryText
-                                )
-
-                            if let amount = order.amount {
-                                Text(
-                                    amount,
-                                    format: .currency(code: "USD")
-                                )
-                                .font(.title3.bold())
-                            }
-
-                            Text(
-                                "Order status: "
-                                + (order.status ?? "Pending")
-                            )
-                            .font(.subheadline)
-
-                            Text(
-                                "Payment status: "
-                                + (order.paymentStatus ?? "Pending")
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(
-                                RoboTheme.secondaryText
-                            )
-
-                            Button {
-                                selectedOrder = order
-                            } label: {
-                                Label(
-                                    "Upload Payment Proof",
-                                    systemImage: "photo"
-                                )
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                        .padding(.vertical, 8)
-                        .listRowBackground(.white)
-                    }
-                }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
-                .refreshable {
-                    await loadOrders()
-                }
+                ordersList
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            RoboTheme.background
-                .ignoresSafeArea()
-        }
+        .background(RoboTheme.background.ignoresSafeArea())
         .navigationTitle("My Orders")
-        .navigationBarItems(
-            trailing: Button {
-                Task {
-                    await loadOrders()
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    Task {
+                        await loadOrders()
+                    }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
-            } label: {
-                Image(systemName: "arrow.clockwise")
+                .accessibilityLabel("Refresh orders")
             }
-            .disabled(isBusy)
-        )
+        }
         .sheet(item: $selectedOrder) { order in
             paymentView(order: order)
         }
     }
 
-    // MARK: - Payment Proof
+    private var ordersList: some View {
+        List {
+            ForEach(orders) { order in
+                orderRow(order)
+                    .listRowBackground(Color.white)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .refreshable {
+            await loadOrders()
+        }
+    }
 
-    private func paymentView(
-        order: APIOrder
-    ) -> some View {
+    private func orderRow(_ order: APIOrder) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(order.productName ?? "Order \(order.id)")
+                .font(.headline)
+                .foregroundStyle(RoboTheme.text)
+
+            Text("Order ID: \(order.id)")
+                .font(.caption)
+                .foregroundStyle(RoboTheme.secondaryText)
+
+            if let amount = order.amount {
+                Text(amount, format: .currency(code: "USD"))
+                    .font(.title3.bold())
+            }
+
+            Text("Order status: \(order.status ?? "Pending")")
+                .font(.subheadline)
+
+            Text("Payment status: \(order.paymentStatus ?? "Pending")")
+                .font(.subheadline)
+                .foregroundStyle(RoboTheme.secondaryText)
+
+            Button {
+                selectedOrder = order
+            } label: {
+                Label("Upload Payment Proof", systemImage: "photo")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Payment
+
+    private func paymentView(order: APIOrder) -> some View {
         NavigationStack {
             Form {
                 Section("Order") {
-                    Text(
-                        order.productName
-                        ?? "Order \(order.id)"
-                    )
-
+                    Text(order.productName ?? "Order \(order.id)")
                     Text("Order ID: \(order.id)")
                 }
 
@@ -574,64 +515,72 @@ struct RootView: View {
                         matching: .images
                     )
 
-                    if let proofImage = proofImage {
-                        Image(uiImage: proofImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 220)
-                    }
+                    paymentImagePreview
 
-                    Button {
-                        Task {
-                            await uploadProof(order)
-                        }
-                    } label: {
-                        HStack {
-                            if isBusy {
-                                ProgressView()
-                            }
-
-                            Text(
-                                isBusy
-                                ? "Uploading…"
-                                : "Submit Payment Proof"
-                            )
-                        }
-                    }
-                    .disabled(
-                        isBusy
-                        || proofImage == nil
-                        || transactionReference
-                            .trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-                            .isEmpty
-                    )
+                    uploadProofButton(order)
                 }
             }
             .navigationTitle("Payment")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarItems(
-                trailing: Button("Close") {
-                    closePayment()
-                }
-            )
-            .task(id: selectedPhoto) {
-                guard let selectedPhoto else {
-                    return
-                }
-
-                guard let data = try? await selectedPhoto
-                    .loadTransferable(type: Data.self),
-                    let image = UIImage(data: data) else {
-                    return
-                }
-
-                await MainActor.run {
-                    proofImage = image
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Close") {
+                        closePayment()
+                    }
                 }
             }
+            .task(id: selectedPhoto) {
+                await loadSelectedPhoto()
+            }
         }
+    }
+
+    @ViewBuilder
+    private var paymentImagePreview: some View {
+        if let image = proofImage {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(maxHeight: 220)
+        }
+    }
+
+    private func uploadProofButton(_ order: APIOrder) -> some View {
+        Button {
+            Task {
+                await uploadProof(order)
+            }
+        } label: {
+            HStack {
+                if isBusy {
+                    ProgressView()
+                }
+
+                Text(isBusy ? "Uploading…" : "Submit Payment Proof")
+            }
+        }
+        .disabled(
+            isBusy
+            || proofImage == nil
+            || transactionReference
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
+        )
+    }
+
+    @MainActor
+    private func loadSelectedPhoto() async {
+        guard let photo = selectedPhoto else {
+            return
+        }
+
+        guard let data = try? await photo.loadTransferable(type: Data.self),
+              let image = UIImage(data: data) else {
+            showMessage("Could not load that image. Please select another.")
+            return
+        }
+
+        proofImage = image
     }
 
     // MARK: - Account
@@ -639,73 +588,67 @@ struct RootView: View {
     private var accountView: some View {
         ScrollView {
             VStack(spacing: 18) {
-                VStack(spacing: 12) {
-                    Image(
-                        systemName: "person.crop.circle.fill"
-                    )
-                    .font(.system(size: 58))
-                    .foregroundStyle(RoboTheme.blue)
-
-                    Text("ROBO SHOP")
-                        .font(.title2.bold())
-                        .foregroundStyle(RoboTheme.navy)
-
-                    Text("Your account")
-                        .foregroundStyle(
-                            RoboTheme.secondaryText
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .padding(26)
-                .background(.white)
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 22)
-                )
+                accountHeader
 
                 Button {
                     Task {
                         await refreshData()
                     }
                 } label: {
-                    Label(
-                        "Refresh Store Data",
-                        systemImage: "arrow.clockwise"
-                    )
+                    Label("Refresh Store Data", systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(RoboPrimaryButtonStyle())
                 .disabled(isBusy)
 
-                Button(role: .destructive) {
-                    APIClient.shared.logout()
-
-                    isLoggedIn = false
-                    selectedTab = 0
-                    products = []
-                    orders = []
-                    password = ""
-                    identifier = ""
-                } label: {
-                    Label(
-                        "Sign Out",
-                        systemImage:
-                            "rectangle.portrait.and.arrow.right"
-                    )
-                    .frame(maxWidth: .infinity)
-                    .padding(14)
-                }
-                .buttonStyle(.bordered)
-                .disabled(isBusy)
+                signOutButton
             }
             .frame(maxWidth: 500)
             .frame(maxWidth: .infinity)
             .padding(16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            RoboTheme.background
-                .ignoresSafeArea()
-        }
+        .background(RoboTheme.background.ignoresSafeArea())
         .navigationTitle("Account")
+    }
+
+    private var accountHeader: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.fill")
+                .font(.system(size: 58))
+                .foregroundStyle(RoboTheme.blue)
+
+            Text("ROBO SHOP")
+                .font(.title2.bold())
+                .foregroundStyle(RoboTheme.navy)
+
+            Text("Your account")
+                .foregroundStyle(RoboTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(26)
+        .background(.white)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+    }
+
+    private var signOutButton: some View {
+        Button(role: .destructive) {
+            APIClient.shared.logout()
+            isLoggedIn = false
+            selectedTab = 0
+            products = []
+            orders = []
+            password = ""
+            identifier = ""
+        } label: {
+            Label(
+                "Sign Out",
+                systemImage: "rectangle.portrait.and.arrow.right"
+            )
+            .frame(maxWidth: .infinity)
+            .padding(14)
+        }
+        .buttonStyle(.bordered)
+        .disabled(isBusy)
     }
 
     // MARK: - Empty State
@@ -734,7 +677,7 @@ struct RootView: View {
         .padding(24)
     }
 
-    // MARK: - Authentication
+    // MARK: - Authentication Actions
 
     @MainActor
     private func authenticate() async {
@@ -791,10 +734,7 @@ struct RootView: View {
 
                 isRegistering = false
                 password = ""
-
-                showMessage(
-                    "Registration submitted. Sign in to continue."
-                )
+                showMessage("Registration submitted. Sign in to continue.")
             } else {
                 try await APIClient.shared.login(
                     identifier: user,
@@ -803,7 +743,6 @@ struct RootView: View {
 
                 isLoggedIn = true
                 selectedTab = 0
-
                 await refreshData()
             }
         } catch {
@@ -811,7 +750,7 @@ struct RootView: View {
         }
     }
 
-    // MARK: - Data Loading
+    // MARK: - API Calls
 
     @MainActor
     private func refreshData() async {
@@ -837,12 +776,8 @@ struct RootView: View {
         }
     }
 
-    // MARK: - Create Order
-
     @MainActor
-    private func createOrder(
-        _ product: APIProduct
-    ) async {
+    private func createOrder(_ product: APIProduct) async {
         guard !isBusy else {
             return
         }
@@ -853,14 +788,8 @@ struct RootView: View {
         }
 
         do {
-            try await APIClient.shared.createOrder(
-                productID: product.id
-            )
-
-            showMessage(
-                "Order submitted. Check My Orders."
-            )
-
+            try await APIClient.shared.createOrder(productID: product.id)
+            showMessage("Order submitted. Check My Orders.")
             await loadOrders()
             selectedTab = 1
         } catch {
@@ -868,17 +797,13 @@ struct RootView: View {
         }
     }
 
-    // MARK: - Upload Payment Proof
-
     @MainActor
-    private func uploadProof(
-        _ order: APIOrder
-    ) async {
+    private func uploadProof(_ order: APIOrder) async {
         guard !isBusy else {
             return
         }
 
-        guard let proofImage = proofImage else {
+        guard let image = proofImage else {
             showMessage("Select a payment screenshot first.")
             return
         }
@@ -901,12 +826,11 @@ struct RootView: View {
             try await APIClient.shared.uploadPaymentProof(
                 orderID: order.id,
                 transactionReference: reference,
-                image: proofImage
+                image: image
             )
 
             closePayment()
             showMessage("Payment proof submitted.")
-
             await loadOrders()
         } catch {
             showMessage(error.localizedDescription)
